@@ -30,7 +30,20 @@ untested.
 
 ## Installation
 
-### 1. NVIDIA driver + CUDA 12.6
+### 1. Prerequisites
+
+- Install ROS 2 Humble (desktop or base) following the
+  [official ROS 2 installation guide](https://docs.ros.org/en/humble/Installation.html).
+- Install the standard ROS 2 build tools: `python3-colcon-common-extensions`,
+  `python3-rosdep`, `python3-vcstool` (and run `rosdep init` / `rosdep update`
+  if this is a fresh ROS 2 install).
+- Install [git-lfs](https://git-lfs.com/) and run `git lfs install` once per
+  machine — this repo stores `my_world/Materials/carter_nvblox_ros.usd`
+  (145 MB) via LFS, so without it the file is just a pointer stub after
+  cloning. Run `git lfs pull` after cloning if the asset didn't come down
+  automatically.
+
+### 2. NVIDIA driver + CUDA 12.6
 
 ```bash
 sudo apt install nvidia-driver-560
@@ -44,18 +57,24 @@ sudo apt install cuda-toolkit-12-6
 TensorRT (`libnvinfer*` 10.7.0.23) is pulled in transitively while installing
 the Isaac ROS packages below, matched to CUDA 12.6.
 
-### 2. VPI 3.2.4
+### 3. VPI 3.2.4
 
 ```bash
+curl -fsSL https://repo.download.nvidia.com/jetson/jetson-ota-public.asc \
+  | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-jetson-ota-public.gpg
+
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/nvidia-jetson-ota-public.gpg] https://repo.download.nvidia.com/jetson/x86_64/jammy r36.4 main" \
   | sudo tee /etc/apt/sources.list.d/nvidia-vpi.list
 sudo apt update
 sudo apt install libnvvpi3 vpi3-dev
 ```
 
-### 3. Isaac ROS apt packages (NITROS)
+### 4. Isaac ROS apt packages (NITROS)
 
 ```bash
+curl -fsSL https://isaac.download.nvidia.com/isaac-ros/repos.key \
+  | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-isaac-ros.gpg
+
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/nvidia-isaac-ros.gpg] https://isaac.download.nvidia.com/isaac-ros/release-3 jammy release-3.0" \
   | sudo tee /etc/apt/sources.list.d/nvidia-isaac-ros.list
 sudo apt update
@@ -67,13 +86,13 @@ sudo apt install \
   ros-humble-isaac-ros-visual-slam
 ```
 
-### 4. Isaac Sim 4.2.0
+### 5. Isaac Sim 4.2.0
 
 Install the standalone package under `~/.local/share/ov/pkg/isaac_sim-4.2.0`
 (via Omniverse Launcher, or by extracting the standalone
 `isaac-sim-standalone@4.2.0` archive to that path).
 
-### 5. `~/.bashrc` environment
+### 6. `~/.bashrc` environment
 
 ```bash
 # ============================================================
@@ -118,7 +137,7 @@ if [ -f "$ISAAC_ROS_WS/install/setup.bash" ]; then
 fi
 ```
 
-### 6. Workspace setup
+### 7. Workspace setup
 
 ```bash
 cd "$HOME/panda_human_ws"
@@ -131,8 +150,36 @@ colcon build --symlink-install \
 source install/setup.bash
 ```
 
-The local TensorRT engines are intentionally not tracked. Put them under
-`models/peoplesemsegnet/1/` or regenerate them for the target GPU/TensorRT version.
+### 8. Regenerate TensorRT engines
+
+The `.plan` files under `models/peoplesemsegnet/1/` are TensorRT engines,
+which are tied to the exact GPU + TensorRT version they were built on, so
+they are intentionally not tracked in git — only the source `.onnx` weights
+(in `models/peoplesemsegnet/`) are. Build the engine(s) you need with
+`trtexec` (installed as part of TensorRT, see step 2/4 above):
+
+```bash
+cd "$HOME/panda_human_ws/models/peoplesemsegnet"
+mkdir -p 1
+
+# Original engine, used in Terminal 3's "original" launch (output: argmax_1)
+/usr/src/tensorrt/bin/trtexec \
+  --onnx=model.onnx \
+  --saveEngine=1/model.plan \
+  --shapes=input_2:1x544x960x3 \
+  --fp16
+
+# 0.90-threshold lightweight variant (output: threshold_mask)
+/usr/src/tensorrt/bin/trtexec \
+  --onnx=model_threshold_090.onnx \
+  --saveEngine=1/model_threshold_090.plan \
+  --shapes=input_2:1x544x960x3 \
+  --fp16
+```
+
+`--fp16` matches the precision this workspace was validated with; drop it to
+build an FP32 engine instead. Repeat for any other `model_*.onnx` variant you
+want to run, saving to the matching `1/model_*.plan` name.
 
 * * *
 
