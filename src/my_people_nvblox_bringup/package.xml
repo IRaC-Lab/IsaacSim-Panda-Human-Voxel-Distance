@@ -10,7 +10,6 @@
   <depend>launch</depend>
   <depend>launch_ros</depend>
   <depend>ament_index_python</depend>
-  <depend>nvblox_examples_bringup</depend>
   <depend>nvblox_ros</depend>
   <depend>nvblox_msgs</depend>
   <depend>rclpy</depend>

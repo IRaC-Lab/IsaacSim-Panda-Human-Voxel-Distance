@@ -38,12 +38,6 @@ def generate_launch_description() -> LaunchDescription:
         description='Number of cameras that should be used for 3d reconstruction',
         cli=True)
     args.add_arg(
-        'navigation',
-        False,
-        description='Whether to enable nav2 for navigation in Isaac Sim.',
-        cli=True)
-
-    args.add_arg(
         'run_rviz',
         True,
         description='Whether to run RViz.',
@@ -70,20 +64,8 @@ def generate_launch_description() -> LaunchDescription:
     actions.append(SetParameter('use_sim_time', True))
 
     # Isaac Sim publishes the camera tree below odom while Panda is below map.
-    # Keep the two perception trees connected even when Nav2 is disabled.
+    # Keep the camera and Panda perception trees connected.
     actions.append(lu.static_transform('map', 'odom'))
-
-    # Navigation
-    # NOTE: needs to be called before the component container because it modifies params globally
-    actions.append(
-        lu.include(
-            'my_people_nvblox_bringup',
-            'launch/navigation/nvblox_carter_navigation.launch.py',
-            launch_arguments={
-                'container_name': NVBLOX_CONTAINER_NAME,
-                'mode': args.mode,
-            },
-            condition=IfCondition(lu.is_true(args.navigation))))
 
     # Container
     actions.append(

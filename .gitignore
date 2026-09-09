@@ -10,10 +10,11 @@ __pycache__/
 
 # Downloaded upstream source and generated TensorRT engines.
 src/isaac_ros_nvblox/
-isaac_ros_assets/models/**/*.plan
+models/**/*.plan
 
 # Isaac Sim cache and local backups.
 my_world/*.usd-cache/
+my_world/.thumbs/
 *.before_*
 
 *.bag
