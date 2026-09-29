@@ -10,11 +10,7 @@ __pycache__/
 
 # Downloaded upstream source and generated TensorRT engines.
 src/isaac_ros_nvblox/
-src/franka_arm_ros2/
 models/**/*.plan
-
-# Built externally, outside this workspace (see README: libfranka 0.9.2).
-libfranka/
 
 # Isaac Sim cache and local backups.
 my_world/*.usd-cache/
