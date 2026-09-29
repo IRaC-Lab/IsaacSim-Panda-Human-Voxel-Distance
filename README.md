@@ -1,7 +1,11 @@
 # Panda–Human Voxel Distance
 
 ROS 2 workspace for PeopleSemSegNet-based human voxels, TF-transformed Panda
-collision-mesh voxels, and filtered minimum-distance estimation in Isaac Sim.
+collision-mesh voxels, and filtered minimum-distance estimation. Runs either
+against Isaac Sim (see below) or a real Panda + RealSense rig — see
+[Real robot](#real-robot-jetson-agx-orin) — sharing the same perception and
+distance-estimation packages (`my_people_nvblox_bringup`,
+`my_peoplesemseg_bringup`, `panda_camera_alignment`).
 
 ## Environment
 
@@ -253,13 +257,173 @@ distance live.
 #### Terminal 1 — `d_filtered` plot
 
 ```bash
-source ~/my_ws/install/setup.bash
+source ~/panda_human_ws/install/setup.bash
 ros2 run my_people_nvblox_bringup plot_filtered_distance
 ```
 
 #### Terminal 2 — `d_raw` vs. `d_filtered` comparison
 
 ```bash
-source ~/my_ws/install/setup.bash
+source ~/panda_human_ws/install/setup.bash
 ros2 run my_people_nvblox_bringup plot_distances
 ```
+
+* * *
+
+## Real robot (Jetson AGX Orin)
+
+Same perception/distance stack as above, but against a physical Panda +
+RealSense rig instead of Isaac Sim. Adds two packages: `panda_pick_place`
+(joint-space left/right pick-and-place) and `panda_real_bringup` (bringup
+launch tying the camera, alignment, perception, and Panda TF together).
+
+### Hardware
+
+- Panda arm, System 4.2.2, with a Franka Hand gripper
+- Intel RealSense (tested: D435-class), fixed or on an ArUco-tracked mount
+- Jetson AGX Orin — match JetPack/L4T and the Isaac ROS release actually
+  installed to your board; the versions pinned under **Environment** above
+  are for the Isaac Sim desktop, not this path
+
+### Why not the official `franka_ros2` driver
+
+Panda (System 4.x) needs **libfranka 0.9.x**. The official
+[franka_ros2](https://github.com/frankaemika/franka_ros2) driver targets FR3
+and newer libfranka, and doesn't support Panda on ROS 2. This setup uses the
+community fork [LCAS/franka_arm_ros2](https://github.com/LCAS/franka_arm_ros2),
+which is tested against Panda + libfranka 0.9.2 + Humble + ros2_control.
+
+### Installation
+
+#### 1. libfranka 0.9.2
+
+Built standalone (not a colcon package), pinned to the exact release Panda's
+FCI expects:
+
+```bash
+sudo apt remove ros-humble-libfranka   # if present: wrong version for Panda
+sudo apt install ros-humble-ros2-controllers ros-humble-joint-trajectory-controller
+
+git clone --recursive https://github.com/frankarobotics/libfranka.git ~/libfranka
+cd ~/libfranka
+git checkout 0.9.2
+git submodule update --init --recursive
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . -j"$(nproc)"
+```
+
+#### 2. `franka_arm_ros2` (LCAS fork)
+
+Imported like `isaac_ros_nvblox` above — pinned via `.repos`, not vendored:
+
+```bash
+cd "$HOME/panda_human_ws"
+vcs import src < franka_arm_ros2.repos
+colcon build --symlink-install \
+  --packages-select franka_description franka_msgs franka_semantic_components \
+    franka_hardware franka_gripper franka_control2 franka_example_controllers \
+  --cmake-args -DFranka_DIR="$HOME/libfranka/build" -DBUILD_TESTING=OFF
+```
+
+#### 3. `~/.bashrc` additions
+
+```bash
+export LD_LIBRARY_PATH="$HOME/libfranka/build:${LD_LIBRARY_PATH:-}"
+```
+
+(The rest of the environment — `ISAAC_ROS_WS`, ROS 2 underlay, etc. — is the
+same as step 6 in the main Installation section above.)
+
+#### 4. Build the real-robot packages
+
+```bash
+cd "$HOME/panda_human_ws"
+colcon build --symlink-install \
+  --packages-up-to panda_pick_place panda_real_bringup \
+  --cmake-args -DFranka_DIR="$HOME/libfranka/build" -DBUILD_TESTING=OFF
+source install/setup.bash
+```
+
+### Run
+
+Five terminals. On the Desk web UI, activate FCI before Terminal 1.
+
+#### Terminal 1 — Panda driver + TF + pick-and-place controller
+
+```bash
+ros2 launch panda_pick_place panda_control.launch.py robot_ip:=172.16.0.2
+```
+
+#### Terminal 2 — RealSense
+
+```bash
+ros2 launch nvblox_examples_bringup realsense.launch.py \
+  run_standalone:=True \
+  color_profile:=1280x720x15 \
+  depth_profile:=848x480x15
+```
+
+#### Terminal 3 — ArUco camera alignment
+
+Use `mode:=dynamic` while the camera mount isn't fixed yet; switch to
+`mode:=static` (with `num_samples:=15`) once it's permanently mounted.
+
+```bash
+ros2 launch panda_camera_alignment aruco_align.launch.py \
+  mode:=dynamic \
+  camera_mount_frame:=camera0_link
+```
+
+#### Terminal 4 — People segmentation + nvblox + Panda/human distance
+
+```bash
+MODEL_DIR="$HOME/panda_human_ws/models/peoplesemsegnet"
+
+ros2 launch panda_real_bringup panda_realsense_people.launch.py \
+  run_realsense:=False \
+  run_alignment:=False \
+  run_rviz:=False \
+  people_segmentation:=peoplesemsegnet_vanilla \
+  vanilla_engine_file_path:="$MODEL_DIR/1/model_vanilla_v2_0_2.plan" \
+  segmentation_output_binding_names:='["argmax_1"]'
+```
+
+#### Terminal 5 — RViz
+
+Full monitoring view:
+
+```bash
+rviz2 -d ~/panda_human_ws/src/panda_real_bringup/config/panda_realsense_people.rviz
+```
+
+Or, for a lighter arm-only debug view (Panda RobotModel + collision spheres,
+no camera/segmentation required — just Terminal 1 and Terminal 4's TF-driven
+nodes):
+
+```bash
+rviz2 -d ~/panda_human_ws/src/my_people_nvblox_bringup/config/visualization/panda_sphere_debug.rviz
+```
+
+#### Terminal 6 (optional) — Pick-and-place motion
+
+Left/right joint-space pick-and-place, repeating until Ctrl+C (which returns
+the arm to its home pose before stopping; a second Ctrl+C halts in place
+instead). See `panda_pick_place/config/pick_place.yaml` to adjust waypoints,
+speed, and gripper force before running on real hardware.
+
+```bash
+ros2 run panda_pick_place pick_place_node --ros-args \
+  --params-file ~/panda_human_ws/src/panda_pick_place/config/pick_place.yaml
+```
+
+### Known gaps
+
+- The Panda/human minimum distance (`/closest_panda_human/distance`) is
+  computed but not yet wired into `pick_place_node` — no automatic slowdown
+  or stop when a person gets close. Planned next step.
+- `panda_realsense_people.launch.py`'s `people_segmentation` /
+  `shuffleseg_engine_file_path` handling only forwards the ShuffleSeg engine
+  path to `segmentation.launch.py`; a `vanilla_engine_file_path` CLI override
+  is accepted but not forwarded, so switching to the vanilla model currently
+  relies on `segmentation.launch.py`'s own default for that engine path.
