@@ -375,18 +375,16 @@ ros2 launch panda_camera_alignment aruco_align.launch.py \
   camera_mount_frame:=camera0_link
 ```
 
-#### Terminal 4 — People segmentation + nvblox + Panda/human distance
+Uses the vanilla PeopleSemSegNet model only (ShuffleSeg is Isaac-Sim-only,
+see above). `vanilla_engine_file_path` already defaults to
+`~/panda_human_ws/models/peoplesemsegnet/1/model_vanilla_v2_0_2.plan`; pass
+it explicitly only if your engine lives elsewhere.
 
 ```bash
-MODEL_DIR="$HOME/panda_human_ws/models/peoplesemsegnet"
-
 ros2 launch panda_real_bringup panda_realsense_people.launch.py \
   run_realsense:=False \
   run_alignment:=False \
-  run_rviz:=False \
-  people_segmentation:=peoplesemsegnet_vanilla \
-  vanilla_engine_file_path:="$MODEL_DIR/1/model_vanilla_v2_0_2.plan" \
-  segmentation_output_binding_names:='["argmax_1"]'
+  run_rviz:=False
 ```
 
 #### Terminal 5 — RViz
@@ -420,10 +418,6 @@ ros2 run panda_pick_place pick_place_node --ros-args \
 ### Known gaps
 
 - The Panda/human minimum distance (`/closest_panda_human/distance`) is
-  computed but not yet wired into `pick_place_node` — no automatic slowdown
-  or stop when a person gets close. Planned next step.
-- `panda_realsense_people.launch.py`'s `people_segmentation` /
-  `shuffleseg_engine_file_path` handling only forwards the ShuffleSeg engine
-  path to `segmentation.launch.py`; a `vanilla_engine_file_path` CLI override
-  is accepted but not forwarded, so switching to the vanilla model currently
-  relies on `segmentation.launch.py`'s own default for that engine path.
+  computed but not read by `pick_place_node` — nothing in that node's code
+  subscribes to it, so the arm doesn't slow down or stop when a person gets
+  close, even though both nodes run side by side. Planned next step.

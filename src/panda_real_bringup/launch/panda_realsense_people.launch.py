@@ -18,14 +18,12 @@ def generate_launch_description() -> LaunchDescription:
     args.add_arg('global_frame', 'panda_link0', cli=True)
     args.add_arg(
         'alignment_mode', 'static', choices=['static', 'dynamic'], cli=True)
+    # Real-robot deployments only run the vanilla PeopleSemSegNet model;
+    # ShuffleSeg is Isaac-Sim-only (see the main README's Isaac Sim section).
     args.add_arg(
-        'people_segmentation', 'peoplesemsegnet_shuffleseg',
-        choices=['peoplesemsegnet_shuffleseg', 'peoplesemsegnet_vanilla'],
-        cli=True)
-    args.add_arg(
-        'shuffleseg_engine_file_path',
+        'vanilla_engine_file_path',
         os.path.join(os.path.expanduser('~'), 'panda_human_ws', 'models',
-                     'peoplesemsegnet', '1', 'model.plan'),
+                     'peoplesemsegnet', '1', 'model_vanilla_v2_0_2.plan'),
         cli=True)
     args.add_arg(
         'segmentation_output_binding_names', '["argmax_1"]', cli=True)
@@ -60,7 +58,7 @@ def generate_launch_description() -> LaunchDescription:
             'nvblox_examples_bringup',
             'launch/perception/segmentation.launch.py',
             launch_arguments={
-                'people_segmentation': args.people_segmentation,
+                'people_segmentation': 'peoplesemsegnet_vanilla',
                 'num_cameras': '1',
                 'namespace_list': '["camera0"]',
                 'input_topic_list': '["/camera0/camera/color/image_raw"]',
@@ -70,7 +68,7 @@ def generate_launch_description() -> LaunchDescription:
                     '["/camera0/segmentation/image_resized"]',
                 'output_resized_camera_info_topic_list':
                     '["/camera0/segmentation/camera_info_resized"]',
-                'shuffleseg_engine_file_path': args.shuffleseg_engine_file_path,
+                'vanilla_engine_file_path': args.vanilla_engine_file_path,
                 'output_binding_names':
                     args.segmentation_output_binding_names,
                 'one_container_per_camera': 'True',
