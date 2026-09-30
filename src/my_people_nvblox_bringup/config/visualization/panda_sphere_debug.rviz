@@ -129,6 +129,33 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /panda/human_exclusion_spheres
       Value: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Marker Scale: 1
+      Name: Panda TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        {}
+      Update Interval: 0
+      Value: true
+    - Ceiling Height: 1.5
+      Class: nvblox_rviz_plugin/NvbloxVoxelBlockLayer
+      Cut Ceiling: false
+      Enabled: false
+      Name: Panda URDF Voxel Layer
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /panda/voxel_layer
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
