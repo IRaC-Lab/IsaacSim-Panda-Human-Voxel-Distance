@@ -141,8 +141,6 @@ mkdir -p 1
 
 Drop `--fp16` for an FP32 engine.
 
-* * *
-
 ## Run
 
 Open `my_world/env_panda_human.usd` in Isaac Sim, then run five terminals.
