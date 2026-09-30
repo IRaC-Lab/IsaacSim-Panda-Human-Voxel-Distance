@@ -5,43 +5,25 @@ collision-mesh voxels, and filtered minimum-distance estimation in Isaac Sim.
 
 ## Environment
 
-Validated on the following configuration. Other combinations may work but are
-untested.
+**Hardware**: AMD Ryzen 9 5900X, NVIDIA RTX 3070 (8 GB VRAM), 32 GB RAM.
 
-**Hardware**
-
-- CPU: AMD Ryzen 9 5900X (12C/24T)
-- GPU: NVIDIA GeForce RTX 3070 (8 GB VRAM)
-- RAM: 32 GB
-
-**Software**
-
-- Ubuntu 22.04.5 LTS
-- NVIDIA driver 560.35.05
-- CUDA 12.6
-- TensorRT 10.7.0.23
-- VPI 3.2.4
-- ROS 2 Humble
-- Isaac Sim 4.2.0
-- Isaac ROS (NITROS) — `release-3.0` apt channel
-  - `isaac-ros-nitros` / `isaac-ros-nvblox` / `isaac-ros-common` 3.2.5
-  - `isaac-ros-unet` / `isaac-ros-tensor-rt` / `isaac-ros-tensor-proc` / `isaac-ros-triton` / `isaac-ros-dnn-image-encoder` 3.2.10
-  - `isaac-ros-visual-slam` 3.2.6
+**Software**: Ubuntu 22.04.5, NVIDIA driver 560.35.05, CUDA 12.6, TensorRT
+10.7.0.23, VPI 3.2.4, ROS 2 Humble, Isaac Sim 4.2.0, Isaac ROS (NITROS)
+`release-3.0`:
+`isaac-ros-nitros`/`isaac-ros-nvblox`/`isaac-ros-common` 3.2.5,
+`isaac-ros-unet`/`isaac-ros-tensor-rt`/`isaac-ros-tensor-proc`/`isaac-ros-triton`/`isaac-ros-dnn-image-encoder`
+3.2.10, `isaac-ros-visual-slam` 3.2.6. Other combinations untested.
 
 ## Installation
 
 ### 1. Prerequisites
 
-- Install ROS 2 Humble (desktop or base) following the
-  [official ROS 2 installation guide](https://docs.ros.org/en/humble/Installation.html).
-- Install the standard ROS 2 build tools: `python3-colcon-common-extensions`,
-  `python3-rosdep`, `python3-vcstool` (and run `rosdep init` / `rosdep update`
-  if this is a fresh ROS 2 install).
-- Install [git-lfs](https://git-lfs.com/) and run `git lfs install` once per
-  machine — this repo stores `my_world/Materials/carter_nvblox_ros.usd`
-  (145 MB) via LFS, so without it the file is just a pointer stub after
-  cloning. Run `git lfs pull` after cloning if the asset didn't come down
-  automatically.
+- ROS 2 Humble ([install guide](https://docs.ros.org/en/humble/Installation.html))
+  + `python3-colcon-common-extensions` `python3-rosdep` `python3-vcstool`
+  (`rosdep init && rosdep update` on a fresh install).
+- [git-lfs](https://git-lfs.com/): `git lfs install` once per machine, then
+  `git lfs pull` after cloning (`my_world/Materials/carter_nvblox_ros.usd` is
+  LFS-tracked).
 
 ### 2. NVIDIA driver + CUDA 12.6
 
@@ -53,9 +35,6 @@ sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt update
 sudo apt install cuda-toolkit-12-6
 ```
-
-TensorRT (`libnvinfer*` 10.7.0.23) is pulled in transitively while installing
-the Isaac ROS packages below, matched to CUDA 12.6.
 
 ### 3. VPI 3.2.4
 
@@ -88,53 +67,33 @@ sudo apt install \
 
 ### 5. Isaac Sim 4.2.0
 
-Install the standalone package under `~/.local/share/ov/pkg/isaac_sim-4.2.0`
-(via Omniverse Launcher, or by extracting the standalone
-`isaac-sim-standalone@4.2.0` archive to that path).
+Install to `~/.local/share/ov/pkg/isaac_sim-4.2.0` (Omniverse Launcher, or
+extract the standalone `isaac-sim-standalone@4.2.0` archive there).
 
 ### 6. `~/.bashrc` environment
 
 ```bash
-# ============================================================
 # CUDA 12.6
-# ============================================================
 export CUDA_HOME="/usr/local/cuda-12.6"
 export PATH="$CUDA_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="$CUDA_HOME/targets/x86_64-linux/lib:/usr/local/lib"
 
-# ============================================================
 # Isaac Sim 4.2
-# ============================================================
 export ISAAC_SIM_PATH="$HOME/.local/share/ov/pkg/isaac_sim-4.2.0"
 export OMNI_PY="$ISAAC_SIM_PATH/python.sh"
-
 alias omni_python="$OMNI_PY"
 alias isaacsim="$ISAAC_SIM_PATH/isaac-sim.sh"
 
-# ============================================================
 # Isaac ROS / nvblox workspace
-# ============================================================
 export ISAAC_ROS_WS="$HOME/panda_human_ws"
 
-# ============================================================
-# ROS 2 Humble underlay
-# ============================================================
-# Keep this single-machine Isaac Sim workspace isolated from ROS 2
-# participants (and especially /clock publishers) on the local network.
+# Keep this workspace isolated from other ROS 2 participants on the network.
 unset ROS_DOMAIN_ID
 export ROS_LOCALHOST_ONLY=1
 
-# Discard inherited ROS overlays before loading the selected workspace.
 unset AMENT_PREFIX_PATH CMAKE_PREFIX_PATH COLCON_PREFIX_PATH ROS_PACKAGE_PATH PYTHONPATH
-
-if [ -f "/opt/ros/humble/setup.bash" ]; then
-    source "/opt/ros/humble/setup.bash"
-fi
-
-# Primary ROS 2 workspace overlay: ~/panda_human_ws
-if [ -f "$ISAAC_ROS_WS/install/setup.bash" ]; then
-    source "$ISAAC_ROS_WS/install/setup.bash"
-fi
+[ -f "/opt/ros/humble/setup.bash" ] && source "/opt/ros/humble/setup.bash"
+[ -f "$ISAAC_ROS_WS/install/setup.bash" ] && source "$ISAAC_ROS_WS/install/setup.bash"
 ```
 
 ### 7. Workspace setup
@@ -152,45 +111,34 @@ source install/setup.bash
 
 ### 8. Regenerate TensorRT engines
 
-`models/peoplesemsegnet/` holds two model families in their own
-subfolders — `shuffleseg/` (used below) and `vanilla/` (not used by this
-Isaac Sim path; kept for the real-robot repo's benefit). Within each, the
-`.plan` files under `1/` are TensorRT engines, tied to the exact GPU +
-TensorRT version they were built on, so they're intentionally not tracked in
-git — only the source `.onnx` weights are. Build the engine(s) you need with
-`trtexec` (installed as part of TensorRT, see step 2/4 above):
+`models/peoplesemsegnet/shuffleseg/` and `.../vanilla/` hold the source
+`.onnx` weights; the `.plan` engines under each `1/` are GPU/TensorRT-version
+specific and not tracked in git. Build with `trtexec`:
 
 ```bash
 cd "$HOME/panda_human_ws/models/peoplesemsegnet/shuffleseg"
 mkdir -p 1
 
-# Original engine, used in Terminal 3's "original" launch (output: argmax_1)
+# Original (output: argmax_1)
 /usr/src/tensorrt/bin/trtexec \
-  --onnx=model.onnx \
-  --saveEngine=1/model.plan \
-  --shapes=input_2:1x544x960x3 \
-  --fp16
+  --onnx=model.onnx --saveEngine=1/model.plan \
+  --shapes=input_2:1x544x960x3 --fp16
 
 # 0.90-threshold lightweight variant (output: threshold_mask)
 /usr/src/tensorrt/bin/trtexec \
-  --onnx=model_threshold_090.onnx \
-  --saveEngine=1/model_threshold_090.plan \
-  --shapes=input_2:1x544x960x3 \
-  --fp16
+  --onnx=model_threshold_090.onnx --saveEngine=1/model_threshold_090.plan \
+  --shapes=input_2:1x544x960x3 --fp16
 ```
 
-`--fp16` matches the precision this workspace was validated with; drop it to
-build an FP32 engine instead. Repeat for any other `model_*.onnx` variant you
-want to run, saving to the matching `1/model_*.plan` name.
+Drop `--fp16` for an FP32 engine.
 
 * * *
 
 ## Run
 
-Open `my_world/env_panda_human.usd` in Isaac Sim, then run the following in
-five terminals.
+Open `my_world/env_panda_human.usd` in Isaac Sim, then run five terminals.
 
-#### Terminal 1 — Launch Isaac Sim
+#### Terminal 1 — Isaac Sim
 
 ```bash
 isaacsim
@@ -204,7 +152,7 @@ ros2 run my_peoplesemseg_bringup camera_info_fix
 
 #### Terminal 3 — ShuffleSeg segmentation engine
 
-- Original engine
+Original engine:
 
 ```bash
 MODEL_DIR="$HOME/panda_human_ws/models/peoplesemsegnet/shuffleseg"
@@ -218,7 +166,7 @@ ros2 launch isaac_ros_unet \
   network_output_type:=argmax
 ```
 
-- 0.90-threshold lightweight variant
+0.90-threshold lightweight variant:
 
 ```bash
 MODEL_DIR="$HOME/panda_human_ws/models/peoplesemsegnet/shuffleseg"
@@ -232,13 +180,15 @@ ros2 launch my_peoplesemseg_bringup \
   network_output_type:=argmax
 ```
 
+Pick one, not both — running both at once can exhaust an 8 GB GPU.
+
 #### Terminal 4 — Mask resize
 
 ```bash
 ros2 run my_peoplesemseg_bringup mask_resize
 ```
 
-#### Terminal 5 — nvblox people segmentation + sphere monitoring/debug rviz
+#### Terminal 5 — nvblox people segmentation + sphere debug rviz
 
 ```bash
 ros2 launch my_people_nvblox_bringup \
@@ -247,21 +197,14 @@ ros2 launch my_people_nvblox_bringup \
   num_cameras:=1
 ```
 
+Opens two RViz windows: the main monitoring view (people highlighted in the
+camera overlay, Panda/human voxel distance) and a lighter Panda-only debug
+view (`panda_sphere_debug.rviz`, `run_panda_debug_rviz:=false` to disable).
+
 ### Distance graphs (optional)
 
-Run alongside the five terminals above to plot the closest Panda–human
-distance live.
-
-#### Terminal 1 — `d_filtered` plot
-
 ```bash
-source ~/my_ws/install/setup.bash
-ros2 run my_people_nvblox_bringup plot_filtered_distance
-```
-
-#### Terminal 2 — `d_raw` vs. `d_filtered` comparison
-
-```bash
-source ~/my_ws/install/setup.bash
-ros2 run my_people_nvblox_bringup plot_distances
+source ~/panda_human_ws/install/setup.bash
+ros2 run my_people_nvblox_bringup plot_filtered_distance   # d_filtered
+ros2 run my_people_nvblox_bringup plot_distances            # d_raw vs d_filtered
 ```
