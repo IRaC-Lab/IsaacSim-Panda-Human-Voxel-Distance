@@ -5,22 +5,31 @@ collision-mesh voxels, and filtered minimum-distance estimation in Isaac Sim.
 
 ## Environment
 
-**Hardware**: AMD Ryzen 9 5900X, NVIDIA RTX 3070 (8 GB VRAM), 32 GB RAM.
+**Hardware**
 
-**Software**: Ubuntu 22.04.5, NVIDIA driver 560.35.05, CUDA 12.6, TensorRT
-10.7.0.23, VPI 3.2.4, ROS 2 Humble, Isaac Sim 4.2.0, Isaac ROS (NITROS)
-`release-3.0`:
-`isaac-ros-nitros`/`isaac-ros-nvblox`/`isaac-ros-common` 3.2.5,
-`isaac-ros-unet`/`isaac-ros-tensor-rt`/`isaac-ros-tensor-proc`/`isaac-ros-triton`/`isaac-ros-dnn-image-encoder`
-3.2.10, `isaac-ros-visual-slam` 3.2.6. Other combinations untested.
+- CPU: AMD Ryzen 9 5900X
+- GPU: NVIDIA RTX 3070 (8 GB VRAM)
+- RAM: 32 GB
+
+**Software**
+
+- Ubuntu 22.04.5, ROS 2 Humble, Isaac Sim 4.2.0
+- NVIDIA driver 560.35.05, CUDA 12.6, TensorRT 10.7.0.23, VPI 3.2.4
+- Isaac ROS (NITROS), `release-3.0` apt channel:
+  - `isaac-ros-nitros` / `isaac-ros-nvblox` / `isaac-ros-common` 3.2.5
+  - `isaac-ros-unet` / `isaac-ros-tensor-rt` / `isaac-ros-tensor-proc` /
+    `isaac-ros-triton` / `isaac-ros-dnn-image-encoder` 3.2.10
+  - `isaac-ros-visual-slam` 3.2.6
+
+Other combinations untested.
 
 ## Installation
 
 ### 1. Prerequisites
 
 - ROS 2 Humble ([install guide](https://docs.ros.org/en/humble/Installation.html))
-  + `python3-colcon-common-extensions` `python3-rosdep` `python3-vcstool`
-  (`rosdep init && rosdep update` on a fresh install).
+  plus `python3-colcon-common-extensions`, `python3-rosdep`,
+  `python3-vcstool` (`rosdep init && rosdep update` on a fresh install).
 - [git-lfs](https://git-lfs.com/): `git lfs install` once per machine, then
   `git lfs pull` after cloning (`my_world/Materials/carter_nvblox_ros.usd` is
   LFS-tracked).
