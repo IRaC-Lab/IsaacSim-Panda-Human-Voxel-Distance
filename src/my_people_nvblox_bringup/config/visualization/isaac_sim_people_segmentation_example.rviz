@@ -73,7 +73,7 @@ Visualization Manager:
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /nvblox_node/dynamic_color_frame_overlay
+            Value: /unet/colored_segmentation_mask
           Value: true
         - Class: rviz_default_plugins/Image
           Enabled: true
@@ -87,7 +87,7 @@ Visualization Manager:
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /nvblox_node/dynamic_depth_frame_overlay
+            Value: /front_stereo_camera/depth/ground_truth
           Value: true
       Enabled: true
       Name: Nvblox
