@@ -152,14 +152,16 @@ source install/setup.bash
 
 ### 8. Regenerate TensorRT engines
 
-The `.plan` files under `models/peoplesemsegnet/1/` are TensorRT engines,
-which are tied to the exact GPU + TensorRT version they were built on, so
-they are intentionally not tracked in git — only the source `.onnx` weights
-(in `models/peoplesemsegnet/`) are. Build the engine(s) you need with
+`models/peoplesemsegnet/` holds two model families in their own
+subfolders — `shuffleseg/` (used below) and `vanilla/` (not used by this
+Isaac Sim path; kept for the real-robot repo's benefit). Within each, the
+`.plan` files under `1/` are TensorRT engines, tied to the exact GPU +
+TensorRT version they were built on, so they're intentionally not tracked in
+git — only the source `.onnx` weights are. Build the engine(s) you need with
 `trtexec` (installed as part of TensorRT, see step 2/4 above):
 
 ```bash
-cd "$HOME/panda_human_ws/models/peoplesemsegnet"
+cd "$HOME/panda_human_ws/models/peoplesemsegnet/shuffleseg"
 mkdir -p 1
 
 # Original engine, used in Terminal 3's "original" launch (output: argmax_1)
@@ -205,7 +207,7 @@ ros2 run my_peoplesemseg_bringup camera_info_fix
 - Original engine
 
 ```bash
-MODEL_DIR="$HOME/panda_human_ws/models/peoplesemsegnet"
+MODEL_DIR="$HOME/panda_human_ws/models/peoplesemsegnet/shuffleseg"
 
 ros2 launch isaac_ros_unet \
   isaac_ros_unet_tensor_rt_isaac_sim.launch.py \
@@ -219,7 +221,7 @@ ros2 launch isaac_ros_unet \
 - 0.90-threshold lightweight variant
 
 ```bash
-MODEL_DIR="$HOME/panda_human_ws/models/peoplesemsegnet"
+MODEL_DIR="$HOME/panda_human_ws/models/peoplesemsegnet/shuffleseg"
 
 ros2 launch my_peoplesemseg_bringup \
   my_unet_tensor_rt_isaac_sim.launch.py \
